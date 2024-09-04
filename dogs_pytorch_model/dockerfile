@@ -1,0 +1,21 @@
+FROM ubuntu:22.04
+RUN apt-get update && apt-get install --no-install-recommends -y \
+apt-utils \
+man \
+nano \
+python3.10 \
+python3-pip \
+ && rm -rf /var/lib/apt/lists/*
+RUN pip3 install --no-cache-dir --upgrade pip
+RUN pip3 install --no-cache-dir numpy==1.24.0 \
+pandas==2.1.1 \
+scikit-learn==1.4.2 \
+tqdm==4.66.2
+RUN pip3 install --no-cache-dir networkx==3.3 \
+sympy==1.12 \
+torch==2.2.0 \
+triton==2.2.0
+WORKDIR /app
+COPY python_script.py .
+COPY dogs.csv .
+CMD ["python3", "python_script.py"]
