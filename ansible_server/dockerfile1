@@ -1,0 +1,40 @@
+FROM ubuntu:22.04
+COPY entrypoint.sh /
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get update && apt-get -y install tzdata
+RUN groupadd --gid 1800 mode \
+  && useradd --uid 1800 --gid mode --shell /bin/bash --create-home mode
+RUN apt-get update && apt-get install --no-install-recommends -y \
+ansible \
+apt-utils \
+gnupg2 \
+man \
+nano \
+openssh-server \
+python3.10 \
+python3-docker \
+    && rm -rf /var/lib/apt/lists/*\
+    && mkdir /var/run/sshd\
+    && mkdir -p /root/.ssh \
+    && chmod 0700 /root/.ssh \
+    && ssh-keygen -A \
+    && sed -i s/^#PasswordAuthentication\ yes/PasswordAuthentication\ no/ /etc/ssh/sshd_config \
+    && chmod +x entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+ WORKDIR /etc/ansible
+COPY ansible.cfg .
+COPY hosts .
+ WORKDIR /group_vars/all
+COPY vault.yml .
+RUN echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" >> /etc/profile
+RUN bash -c 'echo "ulimits: $(ulimit -Sn):$(ulimit -Hn)"'
+RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+RUN /etc/init.d/ssh start
+RUN --mount=type=ssh,id=id_rsa.pub
+EXPOSE 22
+WORKDIR /root/sock
+COPY sock.py .
+COPY sock1.py .
+CMD ["/usr/sbin/sshd", "-D"]
