@@ -1,0 +1,37 @@
+FROM ubuntu:22.04
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get update && apt-get -y install tzdata
+RUN groupadd --gid 1800 mode \
+  && useradd --uid 1800 --gid mode --shell /bin/bash --create-home mode
+RUN apt-get update && apt-get install --no-install-recommends -y \
+ansible \
+apt-utils \
+gnupg2 \
+man \
+nano \
+openssh-server \
+python3-docker \
+python3-pip \
+sshpass \
+ && rm -rf /var/lib/apt/lists/*
+ WORKDIR /etc/ansible
+COPY ansible.cfg .
+COPY hosts .
+ WORKDIR /group_vars/all
+COPY vault.yml .
+RUN mkdir /var/run/sshd
+RUN echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" >> /etc/profile
+RUN bash -c 'echo "ulimits: $(ulimit -Sn):$(ulimit -Hn)"'
+RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+RUN /etc/init.d/ssh start
+EXPOSE 22
+WORKDIR /root/sock
+COPY sock.py .
+COPY sock1.py .
+WORKDIR /ansible
+COPY main1.yml .
+COPY main.yml .
+SHELL ["/bin/bash", "-c"]
+ENTRYPOINT ["ansible-playbook", "main1.yml", "main.yml"]
