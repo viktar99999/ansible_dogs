@@ -1,0 +1,32 @@
+services:
+  ansible-server:
+    image: viktar99999/ansible_server-ubuntu-python310:1.0
+    container_name: ansible-server
+    build:
+      context: ../ansible_server/
+      dockerfile: dockerfile1
+    environment:
+      AUTHORIZED_KEYS: ${AUTHORIZED_KEYS}
+    ports:
+      - "2222:22"
+    networks:
+      - test
+  ansible-playbook:
+    image: viktar99999/ansible_playbook-ubuntu-python310:1.0
+    container_name: ansible-playbook
+    build:
+      context: ../ansible_playbook/
+      dockerfile: dockerfile2
+  dogs_pytorch_model:
+    image: viktar99999/dogs_pytorch_model-ubuntu-python310:1.0
+    container_name: dogs_pytorch_model
+    build:
+      context: ../dogs_pytorch_model/
+      dockerfile: dockerfile
+networks:
+  test:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.16.0.0/28"
